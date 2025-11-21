@@ -1,0 +1,324 @@
+---
+# BIR Form 2550Q Definition
+# Pattern: OpenTaxSolver per-form configuration
+# Defines form structure, line metadata, and validation rules
+
+form:
+  code: "2550Q"
+  name: "Quarterly Value-Added Tax Return"
+  form_type: "VAT_QUARTERLY"
+  period: quarterly
+  filing_frequency: quarterly
+
+  version:
+    form_version: "January 2018 ENCS"
+    revision_date: "2018-01-01"
+    effective_from: "2025-01-01"
+
+  filing_deadlines:
+    Q1: "April 25"
+    Q2: "July 25"
+    Q3: "October 25"
+    Q4: "January 25 (following year)"
+
+  legal_basis:
+    - "NIRC Section 114"
+    - "RR 16-2005 (Consolidated VAT Regulations)"
+
+  instructions_url: "https://www.bir.gov.ph/index.php/eservices/bir-forms.html"
+
+# Form sections structure
+sections:
+  - section_id: header
+    name: "Form Header"
+    description: "Taxpayer identification and return period"
+    required: true
+
+    fields:
+      - field_id: tin
+        label: "Taxpayer Identification Number (TIN)"
+        data_type: string
+        format: "###-###-###-###"
+        required: true
+        validation: "regex:^\\d{3}-\\d{3}-\\d{3}-\\d{3}$"
+
+      - field_id: registered_name
+        label: "Registered Name"
+        data_type: string
+        required: true
+
+      - field_id: trade_name
+        label: "Trade Name/Franchise"
+        data_type: string
+        required: false
+
+      - field_id: rdo_code
+        label: "RDO Code"
+        data_type: string
+        format: "###"
+        required: true
+
+      - field_id: line_of_business
+        label: "Line of Business"
+        data_type: string
+        required: true
+
+      - field_id: return_period
+        label: "For the Quarter Ended"
+        data_type: date
+        format: "YYYY-MM-DD"
+        required: true
+        validation: "quarter_end_date"
+
+  - section_id: part_i
+    name: "Part I - Taxable Sales/Receipts"
+    description: "Sales subject to 12% VAT"
+    required: true
+
+    lines:
+      - line_id: "17"
+        label: "Sale of Goods/Properties"
+        data_type: decimal
+        precision: 2
+        required: true
+        bucket_source: VAT_OUTPUT_12
+        formula: "bucket / 1.12"
+        notes: "Net of VAT (divide gross by 1.12)"
+
+      - line_id: "18"
+        label: "Sale of Services and Use of Properties"
+        data_type: decimal
+        precision: 2
+        required: true
+        bucket_source: VAT_OUTPUT_12
+        formula: "bucket / 1.12"
+
+      - line_id: "19"
+        label: "Total Sales/Receipts (17+18)"
+        data_type: decimal
+        precision: 2
+        required: true
+        formula: "line_17 + line_18"
+        validation: "line_19 == (line_17 + line_18)"
+
+      - line_id: "20"
+        label: "Output Tax (19 x 12%)"
+        data_type: decimal
+        precision: 2
+        required: true
+        bucket_source: VAT_OUTPUT_12
+        formula: "bucket"
+        validation: "line_20 == (line_19 * 0.12)"
+
+  - section_id: part_ii
+    name: "Part II - Exempt and Zero-Rated Sales"
+    description: "Sales not subject to VAT or zero-rated"
+    required: false
+
+    lines:
+      - line_id: "21"
+        label: "Exempt Sales"
+        data_type: decimal
+        precision: 2
+        bucket_source: VAT_EXEMPT
+
+      - line_id: "22"
+        label: "Zero-Rated Sales - Exports"
+        data_type: decimal
+        precision: 2
+        bucket_source: VAT_OUTPUT_ZERO
+
+      - line_id: "23"
+        label: "Zero-Rated Sales - Others"
+        data_type: decimal
+        precision: 2
+        bucket_source: VAT_OUTPUT_ZERO
+
+      - line_id: "24"
+        label: "Total Exempt and Zero-Rated (21+22+23)"
+        data_type: decimal
+        precision: 2
+        formula: "line_21 + line_22 + line_23"
+
+  - section_id: part_iii
+    name: "Part III - Input Tax"
+    description: "Creditable input VAT"
+    required: true
+
+    lines:
+      - line_id: "25A"
+        label: "Domestic Purchases of Goods/Services"
+        data_type: decimal
+        precision: 2
+        required: true
+        bucket_source: VAT_INPUT_12
+
+      - line_id: "25B"
+        label: "Importation"
+        data_type: decimal
+        precision: 2
+        bucket_source: VAT_INPUT_12
+        notes: "Separate tracking not implemented in v1"
+
+      - line_id: "25C"
+        label: "Transitional Input Tax"
+        data_type: decimal
+        precision: 2
+
+      - line_id: "25D"
+        label: "Presumptive Input Tax"
+        data_type: decimal
+        precision: 2
+
+      - line_id: "26"
+        label: "Total Input Tax (25A+25B+25C+25D)"
+        data_type: decimal
+        precision: 2
+        required: true
+        formula: "line_25A + line_25B + line_25C + line_25D"
+
+  - section_id: part_iv
+    name: "Part IV - Computation of VAT"
+    description: "VAT payable or overpayment"
+    required: true
+
+    lines:
+      - line_id: "27"
+        label: "Output Tax (from line 20)"
+        data_type: decimal
+        precision: 2
+        required: true
+        formula: "line_20"
+
+      - line_id: "28"
+        label: "Less: Input Tax (from line 26)"
+        data_type: decimal
+        precision: 2
+        required: true
+        formula: "line_26"
+
+      - line_id: "29"
+        label: "VAT Payable/(Overpayment) (27-28)"
+        data_type: decimal
+        precision: 2
+        required: true
+        bucket_source: VAT_PAYABLE
+        formula: "line_27 - line_28"
+        notes: "Positive = payable, Negative = overpayment"
+
+      - line_id: "30"
+        label: "Add: Tax Credit/Payment from Previous Period"
+        data_type: decimal
+        precision: 2
+        bucket_source: VAT_ADJUSTMENT_PRIOR
+
+      - line_id: "31"
+        label: "VAT Still Payable/(Overpayment) (29+30)"
+        data_type: decimal
+        precision: 2
+        required: true
+        formula: "line_29 + line_30"
+
+      - line_id: "32"
+        label: "Add: Penalties"
+        data_type: decimal
+        precision: 2
+        bucket_source: VAT_PENALTY
+
+      - line_id: "33"
+        label: "Total Amount Still Payable/(Overpayment) (31+32)"
+        data_type: decimal
+        precision: 2
+        required: true
+        formula: "line_31 + line_32"
+
+  - section_id: part_v
+    name: "Part V - Payment"
+    description: "Amount to be paid or carried over"
+    required: true
+
+    lines:
+      - line_id: "34"
+        label: "Tax to be Paid"
+        data_type: decimal
+        precision: 2
+        formula: "MAX(line_33, 0)"
+        notes: "Only if line 33 is positive"
+
+      - line_id: "35"
+        label: "Tax Credit to be Carried Over to Next Period"
+        data_type: decimal
+        precision: 2
+        formula: "ABS(MIN(line_33, 0))"
+        notes: "Only if line 33 is negative (overpayment)"
+        validation: "(line_34 > 0 AND line_35 == 0) OR (line_34 == 0 AND line_35 >= 0)"
+
+# Form-level validations
+validations:
+  - code: FORM_2550Q_V001
+    description: "Lines 34 and 35 cannot both be positive"
+    severity: error
+    rule: "(line_34 > 0 AND line_35 == 0) OR (line_34 == 0 AND line_35 > 0) OR (line_34 == 0 AND line_35 == 0)"
+
+  - code: FORM_2550Q_V002
+    description: "Output tax must equal 12% of total sales"
+    severity: error
+    rule: "ABS(line_20 - (line_19 * 0.12)) < 0.01"
+
+  - code: FORM_2550Q_V003
+    description: "Total input tax must equal sum of components"
+    severity: error
+    rule: "line_26 == (line_25A + line_25B + line_25C + line_25D)"
+
+  - code: FORM_2550Q_V004
+    description: "VAT payable must equal output minus input"
+    severity: error
+    rule: "ABS(line_29 - (line_27 - line_28)) < 0.01"
+
+  - code: FORM_2550Q_V005
+    description: "Return period must be quarter-end date"
+    severity: error
+    rule: "return_period IN ['2025-03-31', '2025-06-30', '2025-09-30', '2025-12-31']"
+
+# Filing instructions
+filing_instructions:
+  - step: 1
+    instruction: "Prepare VAT returns monthly using BIR e-Filing system"
+
+  - step: 2
+    instruction: "File quarterly consolidated return (Form 2550Q) by the 25th of the month following the quarter"
+
+  - step: 3
+    instruction: "Pay any VAT due using eBIRForms or authorized agent banks"
+
+  - step: 4
+    instruction: "If overpayment, elect to carry over credit to next quarter or apply for refund"
+
+  - step: 5
+    instruction: "Keep all supporting documents (sales invoices, purchase receipts) for audit"
+
+# Attachments required
+attachments:
+  - code: ATT_01
+    name: "Summary List of Sales"
+    required: true
+    condition: "line_19 > 0"
+
+  - code: ATT_02
+    name: "Summary List of Purchases"
+    required: true
+    condition: "line_26 > 0"
+
+  - code: ATT_03
+    name: "Export Documentation"
+    required: false
+    condition: "line_22 > 0 OR line_23 > 0"
+
+metadata:
+  version: 1.0.0
+  created_by: "TaxPulse Engine"
+  created_date: "2025-01-21"
+  notes: |
+    This form definition follows OpenTaxSolver's per-form configuration pattern.
+    Each line references either a bucket (from rules) or a formula (computed from other lines).
+    Validations ensure mathematical consistency and BIR compliance.

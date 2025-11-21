@@ -1,0 +1,223 @@
+---
+# Core Validation Rules for TaxPulse PH Pack
+# Pattern: Two-tier validation (transaction scope + aggregate scope)
+# Severity levels: error (blocking), warning (non-blocking), info (advisory)
+
+validations:
+  # Transaction-level validations (per-row checks)
+  transaction:
+    - code: V_TXN_001
+      name: TIN format validation
+      description: "TIN must be 9 or 12 digits (NNN-NNN-NNN or NNN-NNN-NNN-NNN)"
+      scope: transaction
+      severity: error
+      condition:
+        or:
+          - "==": [{"var": "tin"}, null]
+          - regex_match: [{"var": "tin"}, "^\\d{3}-\\d{3}-\\d{3}(-\\d{3})?$"]
+      error_message: "Invalid TIN format. Expected: 123-456-789 or 123-456-789-000"
+
+    - code: V_TXN_002
+      name: Gross amount positive
+      description: "Gross amount must be positive for invoices/bills"
+      scope: transaction
+      severity: error
+      condition:
+        ">": [{"var": "gross_amount"}, 0]
+      error_message: "Gross amount must be greater than zero"
+
+    - code: V_TXN_003
+      name: ATC code required for EWT
+      description: "ATC code is mandatory when tax_code indicates withholding"
+      scope: transaction
+      severity: error
+      condition:
+        if:
+          - in: [{"var": "tax_code"}, ["EWT", "EWT_PROF", "EWT_SUPPLIER"]]
+          - "!=": [{"var": "atc_code"}, null]
+          - true
+      error_message: "ATC code is required for withholding tax transactions"
+
+    - code: V_TXN_004
+      name: Vendor type consistency
+      description: "Vendor type must be consistent with ATC code"
+      scope: transaction
+      severity: warning
+      condition:
+        if:
+          - in: [{"var": "atc_code"}, ["W010", "W020", "W030", "W040"]]
+          - "==": [{"var": "vendor_type"}, "PROFESSIONAL"]
+          - true
+      error_message: "Professional ATC codes (W010-W040) should have vendor_type=PROFESSIONAL"
+
+    - code: V_TXN_005
+      name: Date range validity
+      description: "Transaction date must be within fiscal year"
+      scope: transaction
+      severity: error
+      condition:
+        and:
+          - ">=": [{"var": "txn_date"}, {"var": "fiscal_year_start"}]
+          - "<=": [{"var": "txn_date"}, {"var": "fiscal_year_end"}]
+      error_message: "Transaction date is outside fiscal year"
+
+    - code: V_TXN_006
+      name: Currency validation
+      description: "Currency must be PHP for PH pack"
+      scope: transaction
+      severity: error
+      condition:
+        "==": [{"var": "currency"}, "PHP"]
+      error_message: "Only PHP currency is supported in PH pack"
+
+    - code: V_TXN_007
+      name: Document type validity
+      description: "Document type must be valid (invoice, bill, CN, DN)"
+      scope: transaction
+      severity: error
+      condition:
+        in: [{"var": "doc_type"}, ["invoice", "bill", "CN", "DN"]]
+      error_message: "Invalid document type. Must be: invoice, bill, CN (credit note), or DN (debit note)"
+
+    - code: V_TXN_008
+      name: VAT-registered vendor check
+      description: "VAT transactions require TIN"
+      scope: transaction
+      severity: warning
+      condition:
+        if:
+          - in: [{"var": "tax_code"}, ["VAT_12_PURCHASE", "VAT_ZERO_PURCHASE"]]
+          - "!=": [{"var": "tin"}, null]
+          - true
+      error_message: "VAT purchases should have vendor TIN for proper input tax credit"
+
+    - code: V_TXN_009
+      name: Zero-rated export validation
+      description: "Zero-rated exports must have export documentation"
+      scope: transaction
+      severity: warning
+      condition:
+        if:
+          - "==": [{"var": "tax_code"}, "VAT_ZERO_EXPORTS"]
+          - "!=": [{"var": "export_doc_ref"}, null]
+          - true
+      error_message: "Zero-rated export sales should have export documentation reference"
+
+  # Aggregate-level validations (post-computation checks)
+  aggregate:
+    - code: V_AGG_001
+      name: VAT payable reasonableness
+      description: "VAT payable should be between -500K and +5M"
+      scope: aggregate
+      severity: warning
+      bucket: VAT_PAYABLE
+      condition:
+        and:
+          - ">=": [{"var": "bucket_value"}, -500000]
+          - "<=": [{"var": "bucket_value"}, 5000000]
+      error_message: "VAT payable amount seems unusual. Review for accuracy."
+
+    - code: V_AGG_002
+      name: Input-output ratio check
+      description: "Input VAT should not exceed output VAT by more than 200%"
+      scope: aggregate
+      severity: warning
+      buckets: [VAT_INPUT_12, VAT_OUTPUT_12]
+      condition:
+        "<=": [{"var": "VAT_INPUT_12"}, {"*": [{"var": "VAT_OUTPUT_12"}, 2.0]}]
+      error_message: "Input VAT is disproportionately high compared to output VAT. Verify transactions."
+
+    - code: V_AGG_003
+      name: Zero output VAT with input VAT
+      description: "Having input VAT but zero output VAT is unusual"
+      scope: aggregate
+      severity: info
+      buckets: [VAT_INPUT_12, VAT_OUTPUT_12]
+      condition:
+        if:
+          - "==": [{"var": "VAT_OUTPUT_12"}, 0]
+          - "==": [{"var": "VAT_INPUT_12"}, 0]
+          - true
+      error_message: "Input VAT claimed without output VAT. Confirm this is correct (e.g., zero-rated sales)."
+
+    - code: V_AGG_004
+      name: EWT total reasonableness
+      description: "Total EWT should be positive and under 10M"
+      scope: aggregate
+      severity: warning
+      bucket: EWT_TOTAL
+      condition:
+        and:
+          - ">=": [{"var": "bucket_value"}, 0]
+          - "<=": [{"var": "bucket_value"}, 10000000]
+      error_message: "Total EWT amount seems unusual. Review withholding transactions."
+
+    - code: V_AGG_005
+      name: Professional fees concentration
+      description: "Professional fees EWT should not exceed 80% of total EWT"
+      scope: aggregate
+      severity: info
+      buckets: [EWT_PROF_W010, EWT_PROF_W020, EWT_TOTAL]
+      condition:
+        "<=": [
+          {"+": [{"var": "EWT_PROF_W010"}, {"var": "EWT_PROF_W020"}]},
+          {"*": [{"var": "EWT_TOTAL"}, 0.8]}
+        ]
+      error_message: "Professional fees account for >80% of total EWT. Verify diversity of expenses."
+
+    - code: V_AGG_006
+      name: Negative bucket values
+      description: "Most buckets should not have negative values"
+      scope: aggregate
+      severity: error
+      buckets: [VAT_OUTPUT_12, VAT_INPUT_12, EWT_TOTAL]
+      condition:
+        ">=": [{"var": "bucket_value"}, 0]
+      error_message: "Bucket has negative value. This should not happen unless it's VAT_PAYABLE or adjustments."
+
+    - code: V_AGG_007
+      name: Quarterly VAT threshold
+      description: "Quarterly VAT should exceed minimum filing threshold"
+      scope: aggregate
+      severity: info
+      bucket: VAT_PAYABLE
+      condition:
+        or:
+          - ">=": [{"var": "bucket_value"}, 2500]
+          - "<=": [{"var": "bucket_value"}, -2500]
+      error_message: "VAT payable is below ₱2,500 threshold. Consider if filing is required."
+
+    - code: V_AGG_008
+      name: Penalty should be non-negative
+      description: "Penalties must be zero or positive"
+      scope: aggregate
+      severity: error
+      bucket: VAT_PENALTY
+      condition:
+        ">=": [{"var": "bucket_value"}, 0]
+      error_message: "VAT penalty cannot be negative"
+
+    - code: V_AGG_009
+      name: Prior adjustment range
+      description: "Prior period adjustments should be reasonable"
+      scope: aggregate
+      severity: warning
+      bucket: VAT_ADJUSTMENT_PRIOR
+      condition:
+        and:
+          - ">=": [{"var": "bucket_value"}, -1000000]
+          - "<=": [{"var": "bucket_value"}, 1000000]
+      error_message: "Prior period adjustment exceeds ₱1M. Verify this is correct."
+
+metadata:
+  version: 1.0.0
+  effective_from: "2025-01-01"
+  validation_strategy: "Two-tier (transaction + aggregate)"
+  notes: |
+    Transaction validations run before rule evaluation (data quality gates).
+    Aggregate validations run after rule evaluation (result sanity checks).
+    Severity levels:
+      - error: Blocks processing, must be fixed
+      - warning: Logs warning, processing continues
+      - info: Advisory message, no impact on processing
+    Pattern inspired by PayrollEngine's validation layer and ERPNext's sanity checks.

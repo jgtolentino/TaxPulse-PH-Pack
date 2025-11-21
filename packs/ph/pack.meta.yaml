@@ -1,0 +1,64 @@
+---
+# TaxPulse PH Pack Metadata
+# Pattern: ERPNext/Odoo country pack structure
+pack:
+  code: ph
+  name: Philippines Tax Pack
+  version: 1.0.0
+  country: Philippines
+  locale: en_PH
+  currency: PHP
+
+  # Tax authority
+  authority:
+    name: Bureau of Internal Revenue (BIR)
+    code: BIR
+    website: https://www.bir.gov.ph
+
+  # Fiscal year settings
+  fiscal_year:
+    start_month: 1  # January
+    end_month: 12   # December
+
+  # Tax periods supported
+  periods:
+    - monthly      # For 1601-C, 1600
+    - quarterly    # For 2550Q, 1701Q
+    - annual       # For 1702-RT, 1700
+
+  # BIR forms supported
+  forms:
+    - code: "1601-C"
+      name: Monthly Remittance Return of Income Taxes Withheld on Compensation
+      period: monthly
+      due_day: 10  # 10th of following month
+
+    - code: "2550Q"
+      name: Quarterly Value-Added Tax Return
+      period: quarterly
+      due_days: [25, 25, 25, 25]  # 25th of month following quarter
+
+    - code: "1702-RT"
+      name: Annual Income Tax Return for Corporations
+      period: annual
+      due_day: 15  # April 15 (3.5 months after year-end)
+
+  # Tax types covered
+  tax_types:
+    - vat          # Value-Added Tax
+    - ewt          # Expanded Withholding Tax
+    - fwt          # Final Withholding Tax
+    - income_tax   # Corporate Income Tax
+
+  # Dependencies
+  dependencies:
+    engine_version: ">=1.0.0"
+
+  # Changelog
+  changelog:
+    - version: 1.0.0
+      date: 2025-01-21
+      changes:
+        - Initial release with VAT, EWT, FWT support
+        - BIR Forms 1601-C, 2550Q, 1702-RT
+        - Golden dataset tests for common scenarios

@@ -1,0 +1,195 @@
+---
+# BIR Form 2550Q Mapping
+# Pattern: OpenTaxSolver bucket → form line mapping
+# Maps output buckets from vat.rules.yaml to specific BIR form lines
+
+form:
+  code: "2550Q"
+  name: Quarterly Value-Added Tax Return
+  period: quarterly
+  sections:
+    - part_i_taxable_sales
+    - part_ii_exempt_zero_rated
+    - part_iii_input_tax
+    - part_iv_computation
+    - part_v_payment
+
+# Part I: Taxable Sales/Receipts
+part_i_taxable_sales:
+  section_name: "Part I - Taxable Sales/Receipts"
+
+  lines:
+    - line: "17"
+      description: "Sale of Goods/Properties"
+      bucket: VAT_OUTPUT_12
+      formula: "bucket / 1.12"  # Exclude VAT from gross
+      notes: "Net of VAT amount (divide gross by 1.12)"
+
+    - line: "18"
+      description: "Sale of Services and Use of Properties"
+      bucket: VAT_OUTPUT_12
+      formula: "bucket / 1.12"
+      notes: "Net of VAT amount"
+
+    - line: "19"
+      description: "Total Sales/Receipts (17+18)"
+      formula: "line_17 + line_18"
+
+    - line: "20"
+      description: "Output Tax (19 x 12%)"
+      bucket: VAT_OUTPUT_12
+      formula: "bucket"
+      notes: "This is the actual VAT amount"
+
+# Part II: Exempt and Zero-Rated Sales/Receipts
+part_ii_exempt_zero_rated:
+  section_name: "Part II - Exempt and Zero-Rated Sales"
+
+  lines:
+    - line: "21"
+      description: "Exempt Sales"
+      bucket: VAT_EXEMPT
+      formula: "bucket"
+      notes: "VAT-exempt transactions"
+
+    - line: "22"
+      description: "Zero-Rated Sales - Exports"
+      bucket: VAT_OUTPUT_ZERO
+      formula: "bucket"
+      notes: "Export sales with 0% VAT"
+
+    - line: "23"
+      description: "Zero-Rated Sales - Others"
+      bucket: VAT_OUTPUT_ZERO
+      formula: "bucket"
+      notes: "Other zero-rated sales"
+
+    - line: "24"
+      description: "Total Exempt and Zero-Rated (21+22+23)"
+      formula: "line_21 + line_22 + line_23"
+
+# Part III: Input Tax
+part_iii_input_tax:
+  section_name: "Part III - Input Tax"
+
+  lines:
+    - line: "25A"
+      description: "Input Tax on Domestic Purchases of Goods/Services"
+      bucket: VAT_INPUT_12
+      formula: "bucket"
+      notes: "Creditable input VAT"
+
+    - line: "25B"
+      description: "Input Tax on Importation"
+      bucket: VAT_INPUT_12
+      formula: "0"  # Not tracked separately in v1
+      notes: "Placeholder for future import tracking"
+
+    - line: "25C"
+      description: "Transitional Input Tax"
+      bucket: VAT_INPUT_12
+      formula: "0"
+      notes: "Transitional input tax credit"
+
+    - line: "25D"
+      description: "Presumptive Input Tax"
+      bucket: VAT_INPUT_12
+      formula: "0"
+      notes: "Presumptive input tax"
+
+    - line: "26"
+      description: "Total Input Tax (25A+25B+25C+25D)"
+      formula: "line_25A + line_25B + line_25C + line_25D"
+
+# Part IV: Computation of VAT Payable/Overpayment
+part_iv_computation:
+  section_name: "Part IV - Computation of VAT"
+
+  lines:
+    - line: "27"
+      description: "Output Tax (from line 20)"
+      formula: "line_20"
+
+    - line: "28"
+      description: "Less: Input Tax (from line 26)"
+      formula: "line_26"
+
+    - line: "29"
+      description: "VAT Payable/(Overpayment) (27-28)"
+      bucket: VAT_PAYABLE
+      formula: "line_27 - line_28"
+      notes: "Positive = payable, Negative = overpayment"
+
+    - line: "30"
+      description: "Add: Tax Credit/Payment from Previous Period"
+      bucket: VAT_ADJUSTMENT_PRIOR
+      formula: "bucket"
+      notes: "Carried forward from prior quarter"
+
+    - line: "31"
+      description: "VAT Still Payable/(Overpayment) (29+30)"
+      formula: "line_29 + line_30"
+
+    - line: "32"
+      description: "Add: Penalties"
+      bucket: VAT_PENALTY
+      formula: "bucket"
+      notes: "Late filing/payment penalties"
+
+    - line: "33"
+      description: "Total Amount Still Payable/(Overpayment) (31+32)"
+      formula: "line_31 + line_32"
+
+# Part V: Payment Details
+part_v_payment:
+  section_name: "Part V - Payment"
+
+  lines:
+    - line: "34"
+      description: "Tax to be Paid"
+      formula: "MAX(line_33, 0)"
+      notes: "Only if line 33 is positive"
+
+    - line: "35"
+      description: "Tax Credit to be Carried Over to Next Period"
+      formula: "ABS(MIN(line_33, 0))"
+      notes: "Only if line 33 is negative (overpayment)"
+
+# Validation rules for this form
+validations:
+  - code: V2550Q_01
+    description: "Output tax must equal sales × 12%"
+    rule: "line_20 == (line_19 * 0.12)"
+    severity: error
+
+  - code: V2550Q_02
+    description: "Line 19 must equal line 17 + line 18"
+    rule: "line_19 == (line_17 + line_18)"
+    severity: error
+
+  - code: V2550Q_03
+    description: "Line 26 must equal sum of 25A-25D"
+    rule: "line_26 == (line_25A + line_25B + line_25C + line_25D)"
+    severity: error
+
+  - code: V2550Q_04
+    description: "Line 29 must equal line 27 - line 28"
+    rule: "line_29 == (line_27 - line_28)"
+    severity: error
+
+  - code: V2550Q_05
+    description: "Lines 34 and 35 cannot both be positive"
+    rule: "(line_34 > 0 AND line_35 == 0) OR (line_34 == 0 AND line_35 > 0) OR (line_34 == 0 AND line_35 == 0)"
+    severity: error
+
+metadata:
+  version: 1.0.0
+  form_version: "2018" # Current BIR form version
+  effective_from: "2025-01-01"
+  legal_basis:
+    - "BIR Form 2550Q (January 2018 ENCS)"
+    - "RR 16-2005 (Amended VAT Rules)"
+  notes: |
+    This mapping transforms output buckets from vat.rules.yaml into BIR Form 2550Q line items.
+    Pattern inspired by OpenTaxSolver's per-form mapping files.
+    Each line references either a bucket (from rules) or a formula (computed from other lines).
