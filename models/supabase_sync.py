@@ -20,15 +20,19 @@ class TaxPulseSupabaseSync(models.Model):
     def _get_supabase_config(self):
         """Get Supabase configuration from environment"""
         config = {
-            "url": os.environ.get("SUPABASE_URL", "https://xkxyvboeubffxxbebsll.supabase.co"),
+            "url": os.environ.get(
+                "SUPABASE_URL", "https://xkxyvboeubffxxbebsll.supabase.co"
+            ),
             "service_role_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY"),
         }
 
         if not config["service_role_key"]:
-            raise UserError(_(
-                "Supabase service role key not configured. "
-                "Please set SUPABASE_SERVICE_ROLE_KEY environment variable."
-            ))
+            raise UserError(
+                _(
+                    "Supabase service role key not configured. "
+                    "Please set SUPABASE_SERVICE_ROLE_KEY environment variable."
+                )
+            )
 
         return config
 
@@ -56,7 +60,10 @@ class TaxPulseSupabaseSync(models.Model):
 
         except requests.exceptions.HTTPError as e:
             _logger.error(f"Supabase HTTP error: {e.response.text}")
-            return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text}"}
+            return {
+                "success": False,
+                "error": f"HTTP {e.response.status_code}: {e.response.text}",
+            }
         except requests.exceptions.RequestException as e:
             _logger.error(f"Supabase request error: {str(e)}")
             return {"success": False, "error": str(e)}
@@ -71,8 +78,12 @@ class TaxPulseSupabaseSync(models.Model):
             "p_agency_code": record.agency_id.code,
             "p_agency_name": record.agency_id.name,
             "p_form_number": record.name,
-            "p_period_start": record.period_start.isoformat() if record.period_start else None,
-            "p_period_end": record.period_end.isoformat() if record.period_end else None,
+            "p_period_start": (
+                record.period_start.isoformat() if record.period_start else None
+            ),
+            "p_period_end": (
+                record.period_end.isoformat() if record.period_end else None
+            ),
             "p_month": record.month,
             "p_year": record.year,
             "p_compensation_tax": float(record.compensation_tax),
@@ -89,7 +100,9 @@ class TaxPulseSupabaseSync(models.Model):
             result["supabase_id"] = result.get("data", {}).get("id")
             _logger.info(f"Successfully synced BIR 1601-C {record.name} to Supabase")
         else:
-            _logger.error(f"Failed to sync BIR 1601-C {record.name}: {result.get('error')}")
+            _logger.error(
+                f"Failed to sync BIR 1601-C {record.name}: {result.get('error')}"
+            )
 
         return result
 
@@ -103,8 +116,12 @@ class TaxPulseSupabaseSync(models.Model):
             "p_agency_code": record.agency_id.code,
             "p_agency_name": record.agency_id.name,
             "p_form_number": record.name,
-            "p_quarter_start": record.quarter_start.isoformat() if record.quarter_start else None,
-            "p_quarter_end": record.quarter_end.isoformat() if record.quarter_end else None,
+            "p_quarter_start": (
+                record.quarter_start.isoformat() if record.quarter_start else None
+            ),
+            "p_quarter_end": (
+                record.quarter_end.isoformat() if record.quarter_end else None
+            ),
             "p_quarter": record.quarter,
             "p_year": record.year,
             "p_output_vat": float(record.output_vat),
@@ -121,7 +138,9 @@ class TaxPulseSupabaseSync(models.Model):
             result["supabase_id"] = result.get("data", {}).get("id")
             _logger.info(f"Successfully synced BIR 2550Q {record.name} to Supabase")
         else:
-            _logger.error(f"Failed to sync BIR 2550Q {record.name}: {result.get('error')}")
+            _logger.error(
+                f"Failed to sync BIR 2550Q {record.name}: {result.get('error')}"
+            )
 
         return result
 
@@ -136,8 +155,12 @@ class TaxPulseSupabaseSync(models.Model):
             "p_agency_name": record.agency_id.name,
             "p_form_number": record.name,
             "p_fiscal_year": record.fiscal_year,
-            "p_period_start": record.period_start.isoformat() if record.period_start else None,
-            "p_period_end": record.period_end.isoformat() if record.period_end else None,
+            "p_period_start": (
+                record.period_start.isoformat() if record.period_start else None
+            ),
+            "p_period_end": (
+                record.period_end.isoformat() if record.period_end else None
+            ),
             "p_gross_income": float(record.gross_income),
             "p_deductions": float(record.deductions),
             "p_taxable_income": float(record.taxable_income),
@@ -155,7 +178,9 @@ class TaxPulseSupabaseSync(models.Model):
             result["supabase_id"] = result.get("data", {}).get("id")
             _logger.info(f"Successfully synced BIR 1702-RT {record.name} to Supabase")
         else:
-            _logger.error(f"Failed to sync BIR 1702-RT {record.name}: {result.get('error')}")
+            _logger.error(
+                f"Failed to sync BIR 1702-RT {record.name}: {result.get('error')}"
+            )
 
         return result
 

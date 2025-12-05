@@ -30,7 +30,9 @@ class BIR2550Q(models.Model):
         default=lambda self: self.env.company,
     )
     tin = fields.Char(string="TIN", related="agency_id.tin", readonly=True)
-    rdo_code = fields.Char(string="RDO Code", related="agency_id.rdo_code", readonly=True)
+    rdo_code = fields.Char(
+        string="RDO Code", related="agency_id.rdo_code", readonly=True
+    )
 
     # Quarter fields
     quarter_start = fields.Date(
@@ -52,7 +54,9 @@ class BIR2550Q(models.Model):
         compute="_compute_quarter",
         store=True,
     )
-    year = fields.Char(string="Year", required=True, compute="_compute_year", store=True)
+    year = fields.Char(
+        string="Year", required=True, compute="_compute_year", store=True
+    )
 
     # VAT details
     output_vat = fields.Monetary(
@@ -157,7 +161,9 @@ class BIR2550Q(models.Model):
         """Cancel the BIR 2550Q form"""
         self.ensure_one()
         if self.state == "posted":
-            raise UserError(_("Cannot cancel a posted form. Create a corrective entry instead."))
+            raise UserError(
+                _("Cannot cancel a posted form. Create a corrective entry instead.")
+            )
         self.write({"state": "cancelled"})
         return True
 
@@ -173,14 +179,18 @@ class BIR2550Q(models.Model):
             sync_model = self.env["taxpulse.supabase.sync"]
             result = sync_model.sync_bir_2550q(record)
             if result.get("success"):
-                record.write({
-                    "supabase_synced": True,
-                    "supabase_id": result.get("supabase_id"),
-                    "last_sync_date": fields.Datetime.now(),
-                })
+                record.write(
+                    {
+                        "supabase_synced": True,
+                        "supabase_id": result.get("supabase_id"),
+                        "last_sync_date": fields.Datetime.now(),
+                    }
+                )
         return True
 
     def action_print_report(self):
         """Print BIR 2550Q report"""
         self.ensure_one()
-        return self.env.ref("taxpulse_ph_pack.action_report_bir_2550q").report_action(self)
+        return self.env.ref("taxpulse_ph_pack.action_report_bir_2550q").report_action(
+            self
+        )

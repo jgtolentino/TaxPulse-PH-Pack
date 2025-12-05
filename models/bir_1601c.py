@@ -30,7 +30,9 @@ class BIR1601C(models.Model):
         default=lambda self: self.env.company,
     )
     tin = fields.Char(string="TIN", related="agency_id.tin", readonly=True)
-    rdo_code = fields.Char(string="RDO Code", related="agency_id.rdo_code", readonly=True)
+    rdo_code = fields.Char(
+        string="RDO Code", related="agency_id.rdo_code", readonly=True
+    )
 
     # Period fields
     period_start = fields.Date(
@@ -65,7 +67,9 @@ class BIR1601C(models.Model):
         compute="_compute_month",
         store=True,
     )
-    year = fields.Char(string="Year", required=True, compute="_compute_year", store=True)
+    year = fields.Char(
+        string="Year", required=True, compute="_compute_year", store=True
+    )
 
     # Withholding tax details
     compensation_tax = fields.Monetary(
@@ -154,7 +158,9 @@ class BIR1601C(models.Model):
         """Confirm the BIR 1601-C form"""
         self.ensure_one()
         if not self.line_ids:
-            raise UserError(_("Cannot confirm form without tax lines. Please add tax details."))
+            raise UserError(
+                _("Cannot confirm form without tax lines. Please add tax details.")
+            )
         self.write({"state": "confirmed"})
         return True
 
@@ -172,7 +178,9 @@ class BIR1601C(models.Model):
         """Cancel the BIR 1601-C form"""
         self.ensure_one()
         if self.state == "posted":
-            raise UserError(_("Cannot cancel a posted form. Create a corrective entry instead."))
+            raise UserError(
+                _("Cannot cancel a posted form. Create a corrective entry instead.")
+            )
         self.write({"state": "cancelled"})
         return True
 
@@ -188,17 +196,21 @@ class BIR1601C(models.Model):
             sync_model = self.env["taxpulse.supabase.sync"]
             result = sync_model.sync_bir_1601c(record)
             if result.get("success"):
-                record.write({
-                    "supabase_synced": True,
-                    "supabase_id": result.get("supabase_id"),
-                    "last_sync_date": fields.Datetime.now(),
-                })
+                record.write(
+                    {
+                        "supabase_synced": True,
+                        "supabase_id": result.get("supabase_id"),
+                        "last_sync_date": fields.Datetime.now(),
+                    }
+                )
         return True
 
     def action_print_report(self):
         """Print BIR 1601-C report"""
         self.ensure_one()
-        return self.env.ref("taxpulse_ph_pack.action_report_bir_1601c").report_action(self)
+        return self.env.ref("taxpulse_ph_pack.action_report_bir_1601c").report_action(
+            self
+        )
 
     def compute_withholding_tax_from_moves(self):
         """Automatically compute withholding tax from account moves
@@ -226,7 +238,11 @@ class BIR1601C(models.Model):
         # Filter by agency's analytic account if available
         if self.agency_id.analytic_account_id:
             domain.append(
-                ("line_ids.analytic_account_id", "=", self.agency_id.analytic_account_id.id)
+                (
+                    "line_ids.analytic_account_id",
+                    "=",
+                    self.agency_id.analytic_account_id.id,
+                )
             )
 
         moves = AccountMove.search(domain)
@@ -236,10 +252,12 @@ class BIR1601C(models.Model):
         final_tax = 0.0
 
         # Get all move lines from the period's moves
-        move_lines = self.env["account.move.line"].search([
-            ("move_id", "in", moves.ids),
-            ("tax_line_id", "!=", False),  # Only tax lines
-        ])
+        move_lines = self.env["account.move.line"].search(
+            [
+                ("move_id", "in", moves.ids),
+                ("tax_line_id", "!=", False),  # Only tax lines
+            ]
+        )
 
         for line in move_lines:
             tax = line.tax_line_id
@@ -252,7 +270,11 @@ class BIR1601C(models.Model):
             # Check tax group name
             if tax.tax_group_id:
                 group_name = (tax.tax_group_id.name or "").lower()
-                if "compensation" in group_name or "salary" in group_name or "payroll" in group_name:
+                if (
+                    "compensation" in group_name
+                    or "salary" in group_name
+                    or "payroll" in group_name
+                ):
                     is_compensation = True
                 elif "final" in group_name:
                     is_final = True
@@ -262,12 +284,23 @@ class BIR1601C(models.Model):
             tax_description = (tax.description or "").upper()
 
             # Compensation withholding indicators
-            if any(indicator in tax_name or indicator in tax_description
-                   for indicator in ["WC", "COMPENSATION", "SALARY", "PAYROLL", "1601C", "1601-C"]):
+            if any(
+                indicator in tax_name or indicator in tax_description
+                for indicator in [
+                    "WC",
+                    "COMPENSATION",
+                    "SALARY",
+                    "PAYROLL",
+                    "1601C",
+                    "1601-C",
+                ]
+            ):
                 is_compensation = True
             # Final withholding indicators
-            elif any(indicator in tax_name or indicator in tax_description
-                     for indicator in ["WF", "FINAL", "F001", "F002", "F003", "F004", "F005"]):
+            elif any(
+                indicator in tax_name or indicator in tax_description
+                for indicator in ["WF", "FINAL", "F001", "F002", "F003", "F004", "F005"]
+            ):
                 is_final = True
 
             # Accumulate based on classification
@@ -276,10 +309,12 @@ class BIR1601C(models.Model):
             elif is_final:
                 final_tax += tax_amount
 
-        self.write({
-            "compensation_tax": compensation_tax,
-            "final_tax": final_tax,
-        })
+        self.write(
+            {
+                "compensation_tax": compensation_tax,
+                "final_tax": final_tax,
+            }
+        )
 
 
 class BIR1601CLine(models.Model):
@@ -289,7 +324,9 @@ class BIR1601CLine(models.Model):
     _description = "BIR 1601-C Tax Line"
     _order = "sequence, id"
 
-    form_id = fields.Many2one("bir.1601c", string="Form", required=True, ondelete="cascade")
+    form_id = fields.Many2one(
+        "bir.1601c", string="Form", required=True, ondelete="cascade"
+    )
     sequence = fields.Integer(string="Sequence", default=10)
     name = fields.Char(string="Description", required=True)
     tax_type = fields.Selection(
