@@ -1,7 +1,7 @@
 # Copyright 2025 InsightPulse AI Finance SSC
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import api, fields, models, _
+from odoo import models, _
 from odoo.exceptions import UserError
 import requests
 import os
@@ -25,9 +25,10 @@ class TaxPulseSupabaseSync(models.Model):
         }
 
         if not config["service_role_key"]:
-            raise UserError(
-                _("Supabase service role key not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.")
-            )
+            raise UserError(_(
+                "Supabase service role key not configured. "
+                "Please set SUPABASE_SERVICE_ROLE_KEY environment variable."
+            ))
 
         return config
 
