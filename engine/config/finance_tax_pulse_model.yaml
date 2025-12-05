@@ -1,0 +1,108 @@
+# Finance Tax Pulse Model Configuration
+# Copyright 2025 InsightPulse AI Finance SSC
+
+model_id: finance-tax-pulse-orchestrator
+version: "1.0"
+description: "AI-assisted Philippine BIR tax compliance review orchestrator"
+
+# Provider configuration
+provider: anthropic
+model_name: claude-sonnet-4-20250514  # Claude Sonnet 4 for production
+fallback_model: claude-3-haiku-20240307  # Haiku for cost-sensitive runs
+
+# Alternative providers (uncomment to use)
+# provider: openai
+# model_name: gpt-4-turbo
+#
+# provider: groq
+# model_name: llama-3.1-70b-versatile
+
+# Prompt configuration
+system_prompt_file: engine/finance_tax_pulse_orchestrator.md
+protocol_source: database  # Loads from tax_pulse_protocols table
+
+# Model parameters
+parameters:
+  temperature: 0.1  # Low temperature for consistent, deterministic output
+  max_tokens: 4096
+  top_p: 0.95
+  frequency_penalty: 0
+  presence_penalty: 0
+
+# Response handling
+response:
+  format: json
+  strict_schema: true
+  retry_on_parse_error: true
+  max_retries: 2
+
+# Rate limiting
+rate_limits:
+  requests_per_minute: 10
+  tokens_per_minute: 100000
+
+# Cost controls
+cost_controls:
+  max_input_tokens: 50000
+  max_output_tokens: 4096
+  warn_on_cost_usd: 1.00
+  block_on_cost_usd: 5.00
+
+# Caching
+cache:
+  enabled: true
+  ttl_seconds: 3600
+  cache_key_includes:
+    - entity_id
+    - period_start
+    - period_end
+    - protocol_version
+
+# Observability
+logging:
+  level: info
+  include_prompt: false  # Don't log full prompts in production
+  include_response: false
+  log_latency: true
+  log_token_usage: true
+
+metrics:
+  enabled: true
+  export_to: prometheus  # or datadog, cloudwatch
+  labels:
+    - entity_id
+    - protocol_version
+    - status
+
+# Security
+security:
+  pii_filtering: true
+  redact_tins: true
+  audit_log: true
+
+# Integration hooks
+hooks:
+  pre_request:
+    - validate_entity_id
+    - check_rate_limit
+    - load_protocol
+  post_response:
+    - parse_json
+    - validate_scores
+    - save_run_log
+  on_error:
+    - log_error
+    - notify_slack
+
+# Environment variable mappings
+env_vars:
+  api_key: LLM_API_KEY
+  api_url: LLM_API_URL
+  supabase_url: SUPABASE_URL
+  supabase_key: SUPABASE_SERVICE_ROLE_KEY
+
+# Feature flags
+features:
+  parallel_dimension_scoring: false  # Future: parallel scoring calls
+  authority_rag: false  # Future: RAG for authority citations
+  multi_entity_batch: false  # Future: batch processing

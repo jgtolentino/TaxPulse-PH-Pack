@@ -135,6 +135,73 @@ Print BIR forms:
 1. Open the form (1601-C, 2550Q, or 1702-RT)
 2. Click **Print** to generate PDF report
 
+Finance Tax Pulse AI Review
+---------------------------
+
+When Supabase integration and the ``finance-tax-pulse`` Edge Function are
+configured, you can trigger an AI-assisted compliance review for a given
+entity and period.
+
+**Setup:**
+
+1. Apply the Tax Pulse schema migrations:
+
+.. code-block:: bash
+
+    psql "$POSTGRES_URL" -f supabase/003_tax_pulse_schema.sql
+    psql "$POSTGRES_URL" -f supabase/004_tax_pulse_protocol_seed.sql
+
+2. Deploy the Edge Function:
+
+.. code-block:: bash
+
+    supabase functions deploy finance-tax-pulse
+    supabase secrets set LLM_API_KEY=your-api-key
+
+**Triggering a Review:**
+
+Call the Edge Function with:
+
+- ``entity_id``: Agency code (RIM, CKVC, BOM, etc.)
+- ``period_start`` / ``period_end``: Review period dates
+- ``tax_types``: Array of form types (1601-C, 2550Q, 1702-RT)
+- ``protocol_version``: Review protocol (default: v1)
+
+.. code-block:: bash
+
+    curl -X POST "$SUPABASE_URL/functions/v1/finance-tax-pulse" \
+      -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "entity_id": "RIM",
+        "period_start": "2025-01-01",
+        "period_end": "2025-03-31",
+        "tax_types": ["1601-C", "2550Q"],
+        "protocol_version": "v1"
+      }'
+
+The function will:
+
+* Aggregate the relevant BIR forms and account moves
+* Run them through the Finance Tax Pulse orchestrator (Claude/GPT)
+* Score across 5 dimensions: Compliance, Numeric, Coverage, Timeliness, Clarity
+* Store scores and memo in the ``tax_pulse_run_log`` table
+* Return a structured JSON response with findings and recommendations
+
+**Review Results:**
+
+Query the run log for review history:
+
+.. code-block:: sql
+
+    SELECT entity_id, run_ts, score_compliance, score_numeric,
+           weakest_dimension, memo_summary
+    FROM tax_pulse_run_log
+    WHERE entity_id = 'RIM'
+    ORDER BY run_ts DESC;
+
+See ``specs/002_finance_tax_pulse.md`` for full documentation.
+
 Bug Tracker
 ===========
 
