@@ -1,0 +1,255 @@
+# config/tax_pulse_sources.yaml
+# PH Tax Authority Sources for Finance Tax Pulse RAG Layer
+#
+# Authority Tiers:
+#   0 - Core Law (highest authority, cannot be overridden)
+#   1 - Admin/BIR Primary Materials (binding administrative issuances)
+#   2 - Government Research & Courts (interpretive guidance)
+#   3 - Professional Practice Bodies (guidance only, lowest authority)
+#
+# IMPORTANT: Lower tiers cannot override higher tiers.
+# If Tier 0-1 contradict Tier 2-3, obey Tier 0-1.
+
+sources:
+  # ───────────────────────────────────────────────────────────────────────
+  # TIER 0: CORE LAW (HIGHEST AUTHORITY)
+  # ───────────────────────────────────────────────────────────────────────
+  - id: nirc_official_gazette
+    tier: 0
+    kind: law
+    domain: "officialgazette.gov.ph"
+    label: "National Internal Revenue Code (as amended)"
+    description: >
+      Consolidated text of the National Internal Revenue Code of 1997 as amended
+      by TRAIN, CREATE and subsequent tax laws. Use as primary statutory basis.
+    urls:
+      - https://www.officialgazette.gov.ph/
+    active: true
+
+  - id: tax_laws_dof
+    tier: 0
+    kind: law
+    domain: "dof.gov.ph"
+    label: "Tax-related Republic Acts and DOF tax law pages"
+    description: >
+      Official DOF pages and republic acts that amend or supplement the NIRC.
+      Includes TRAIN Law (RA 10963), CREATE Law (RA 11534), and CREATE MORE.
+    urls:
+      - https://www.dof.gov.ph/
+    active: true
+
+  # ───────────────────────────────────────────────────────────────────────
+  # TIER 1: BIR PRIMARY MATERIALS (BINDING ADMIN)
+  # ───────────────────────────────────────────────────────────────────────
+  - id: bir_main
+    tier: 1
+    kind: admin
+    domain: "bir.gov.ph"
+    label: "Bureau of Internal Revenue – main site"
+    description: >
+      Official BIR site including tax code copy, forms, FAQs and guides.
+    urls:
+      - https://www.bir.gov.ph/
+    active: true
+
+  - id: bir_revenue_issuances
+    tier: 1
+    kind: admin
+    domain: "bir.gov.ph"
+    path_pattern: "/index.php/revenue-issuances"
+    label: "BIR Revenue Regulations, RMCs, RMOs and rulings"
+    description: >
+      All revenue regulations, revenue memorandum circulars and related issuances
+      implementing the NIRC. Treat as binding administrative authority.
+    urls:
+      - https://www.bir.gov.ph/index.php/revenue-issuances.html
+    active: true
+
+  - id: bir_tax_guides
+    tier: 1
+    kind: admin
+    domain: "bir.gov.ph"
+    path_pattern: "/index.php/tax-information"
+    label: "BIR Tax Guides"
+    description: >
+      BIR-prepared guides, primers and FAQs by tax type (VAT, withholding, etc.).
+      Use as official explanation when text is consistent with law and issuances.
+    urls:
+      - https://www.bir.gov.ph/index.php/tax-information.html
+    active: true
+
+  - id: bir_tax_code
+    tier: 1
+    kind: admin
+    domain: "bir.gov.ph"
+    label: "BIR Tax Code Copy"
+    description: >
+      BIR's published version of the Tax Code with annotations.
+      Use alongside Official Gazette for cross-reference.
+    urls:
+      - https://www.bir.gov.ph/tax-code
+    active: true
+
+  # ───────────────────────────────────────────────────────────────────────
+  # TIER 2: GOVERNMENT RESEARCH & COURTS
+  # ───────────────────────────────────────────────────────────────────────
+  - id: ntrc_main
+    tier: 2
+    kind: research
+    domain: "ntrc.gov.ph"
+    label: "National Tax Research Center – laws, issuances, studies"
+    description: >
+      DOF-attached research body that compiles tax laws, BIR issuances and
+      publishes analytical papers. Use for interpretation and context.
+    urls:
+      - https://www.ntrc.gov.ph/
+      - https://www.ntrc.gov.ph/13-tax-laws/105-tax-laws-republic-acts
+      - https://www.ntrc.gov.ph/tax-info/bir-issuances
+    active: true
+
+  - id: ph_supreme_court_elibrary
+    tier: 2
+    kind: jurisprudence
+    domain: "judiciary.gov.ph"
+    alt_domains:
+      - "elibrary.judiciary.gov.ph"
+    label: "Supreme Court E-Library – tax decisions"
+    description: >
+      Supreme Court and Court of Tax Appeals decisions on tax controversies.
+      Use to derive doctrinal rules, especially on assessments, refunds and
+      procedural requirements.
+    urls:
+      - https://elibrary.judiciary.gov.ph/
+    active: true
+
+  - id: cta_decisions
+    tier: 2
+    kind: jurisprudence
+    domain: "cta.judiciary.gov.ph"
+    label: "Court of Tax Appeals Decisions"
+    description: >
+      Specialized tax court decisions. First-level tax dispute resolution.
+      Use for detailed interpretations of tax provisions and procedures.
+    urls:
+      - https://cta.judiciary.gov.ph/
+    active: true
+
+  # ───────────────────────────────────────────────────────────────────────
+  # TIER 3: PROFESSIONAL PRACTICE BODIES (GUIDANCE ONLY)
+  # ───────────────────────────────────────────────────────────────────────
+  - id: picpa
+    tier: 3
+    kind: practitioner
+    domain: "picpa.com.ph"
+    label: "Philippine Institute of Certified Public Accountants"
+    description: >
+      AIPO for CPAs in the Philippines. Use for practice notes, checklists and
+      implementation guidance, never to override law or BIR issuances.
+    urls:
+      - https://picpa.com.ph/
+      - https://picpasystem.com.ph/events/
+    active: true
+
+  - id: tmap
+    tier: 3
+    kind: practitioner
+    domain: "tmap.org.ph"
+    label: "Tax Management Association of the Philippines"
+    description: >
+      Private-sector tax management association. Use for best practices and
+      commentary, not as binding authority.
+    urls:
+      - https://www.tmap.org.ph/
+    active: true
+
+  - id: philippine_tax_academy
+    tier: 3
+    kind: practitioner
+    domain: "doftaxacademy.gov.ph"
+    label: "Philippine Tax Academy (DOF)"
+    description: >
+      State tax-training institution. Use for training materials and
+      high-level guidance, especially on admin processes.
+    urls:
+      - https://doftaxacademy.gov.ph/
+    active: true
+
+  - id: boa_prc
+    tier: 3
+    kind: practitioner
+    domain: "prc.gov.ph"
+    label: "Board of Accountancy / PRC"
+    description: >
+      Professional Regulation Commission and Board of Accountancy.
+      Standards for CPA practice and ethics.
+    urls:
+      - https://www.prc.gov.ph/
+    active: true
+
+# ─────────────────────────────────────────────────────────────────────────
+# AUTHORITY RULES FOR RAG AGENTS
+# ─────────────────────────────────────────────────────────────────────────
+authority_rules:
+  # Reasoning Rules
+  reasoning:
+    - >
+      Always identify the highest-tier source in your retrieved context and base
+      your conclusions on it. Use lower tiers only to clarify or illustrate.
+    - >
+      When answering questions about what the law requires, prioritize Tier 0,
+      then Tier 1, then Tier 2.
+    - >
+      When answering questions about how SSC should operationalize the law,
+      use Tier 1 and Tier 3, with Tier 0 constraints.
+    - >
+      When answering questions about how courts have ruled in disputes,
+      use Tier 2 (case law), constrained by Tier 0.
+    - >
+      If two sources conflict, prefer higher tier. If same tier but different dates,
+      prefer the more recent and explicitly say that your answer depends on that
+      more recent authority.
+
+  # Citation Rules
+  citation:
+    - >
+      Always cite at least one Tier 0 or Tier 1 source when giving a firm
+      compliance recommendation.
+    - >
+      Clearly label practitioner or training material as such
+      (e.g., "PICPA practice note", "TMAP commentary").
+    - >
+      If no Tier 0-2 context is available for a question, say that law-level
+      authority was not retrieved. Base your suggestion on Tier 3 only as
+      provisional practice guidance. Encourage human review before treating
+      it as binding.
+
+  # Query Routing
+  query_routing:
+    # For "is this allowed / what is the rule" queries
+    law_questions:
+      allowed_tiers: [0, 1, 2]
+      description: "Use for compliance and legal interpretation questions"
+
+    # For "how to implement in SSC" queries
+    implementation_questions:
+      allowed_tiers: [1, 2, 3]
+      description: "Use for operational and process questions"
+
+    # For "how to prepare for audit" queries
+    audit_questions:
+      allowed_tiers: [1, 2]
+      description: "Use for audit defense and documentation questions"
+
+# ─────────────────────────────────────────────────────────────────────────
+# METADATA
+# ─────────────────────────────────────────────────────────────────────────
+metadata:
+  version: "1.0.0"
+  last_updated: "2025-12-05"
+  maintained_by: "TaxPulse Team"
+  jurisdiction: "Philippines"
+  applicable_laws:
+    - "National Internal Revenue Code of 1997 (as amended)"
+    - "TRAIN Law (RA 10963)"
+    - "CREATE Law (RA 11534)"
+    - "CREATE MORE Act"
