@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ipai_project_brief/data/project_brief_demo.xml -->
+<odoo noupdate="1">
+
+    <record id="project_brief_demo_1" model="project.brief">
+        <field name="name">Launch Campaign - Tindahan 2.0</field>
+        <field name="project_id" ref="project.project_project_1"/>
+        <field name="client_id" ref="base.res_partner_1"/>
+        <field name="brand_name">Tindahan 2.0</field>
+        <field name="objective">
+            Raise awareness of sari-sari store upgrade program among urban millennials.
+        </field>
+        <field name="target_audience">
+            Urban millennials, primary household decision makers, age 25-35.
+        </field>
+        <field name="key_message">
+            Tindahan 2.0: from tindahan to neighborhood command center.
+        </field>
+        <field name="deliverables">
+            TVC, digital film, OOH, social content, in-store POS materials.
+        </field>
+        <field name="budget">500000</field>
+        <field name="deadline">2025-12-31</field>
+        <field name="status">draft</field>
+    </record>
+
+</odoo>

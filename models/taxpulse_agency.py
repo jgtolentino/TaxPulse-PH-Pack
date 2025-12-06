@@ -35,9 +35,7 @@ class TaxPulseAgency(models.Model):
         string="1702-RT Forms", compute="_compute_bir_form_counts"
     )
 
-    _sql_constraints = [
-        ("code_unique", "UNIQUE(code)", "Agency code must be unique!")
-    ]
+    _sql_constraints = [("code_unique", "UNIQUE(code)", "Agency code must be unique!")]
 
     @api.depends("code")
     def _compute_bir_form_counts(self):

@@ -30,7 +30,9 @@ class BIR1702RT(models.Model):
         default=lambda self: self.env.company,
     )
     tin = fields.Char(string="TIN", related="agency_id.tin", readonly=True)
-    rdo_code = fields.Char(string="RDO Code", related="agency_id.rdo_code", readonly=True)
+    rdo_code = fields.Char(
+        string="RDO Code", related="agency_id.rdo_code", readonly=True
+    )
 
     # Fiscal year fields
     fiscal_year = fields.Char(
@@ -150,7 +152,9 @@ class BIR1702RT(models.Model):
         """Cancel the BIR 1702-RT form"""
         self.ensure_one()
         if self.state == "posted":
-            raise UserError(_("Cannot cancel a posted form. Create a corrective entry instead."))
+            raise UserError(
+                _("Cannot cancel a posted form. Create a corrective entry instead.")
+            )
         self.write({"state": "cancelled"})
         return True
 
@@ -166,14 +170,18 @@ class BIR1702RT(models.Model):
             sync_model = self.env["taxpulse.supabase.sync"]
             result = sync_model.sync_bir_1702rt(record)
             if result.get("success"):
-                record.write({
-                    "supabase_synced": True,
-                    "supabase_id": result.get("supabase_id"),
-                    "last_sync_date": fields.Datetime.now(),
-                })
+                record.write(
+                    {
+                        "supabase_synced": True,
+                        "supabase_id": result.get("supabase_id"),
+                        "last_sync_date": fields.Datetime.now(),
+                    }
+                )
         return True
 
     def action_print_report(self):
         """Print BIR 1702-RT report"""
         self.ensure_one()
-        return self.env.ref("taxpulse_ph_pack.action_report_bir_1702rt").report_action(self)
+        return self.env.ref("taxpulse_ph_pack.action_report_bir_1702rt").report_action(
+            self
+        )
