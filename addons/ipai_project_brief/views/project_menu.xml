@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ipai_project_brief/views/project_menu.xml -->
+<odoo>
+    <!-- Add Project Briefs menu under Project -->
+    <menuitem
+        id="menu_project_brief_root"
+        name="Project Briefs"
+        parent="project.menu_main_pm"
+        sequence="60"
+    />
+
+    <menuitem
+        id="menu_project_brief"
+        name="Briefs"
+        parent="menu_project_brief_root"
+        action="action_project_brief"
+        sequence="10"
+    />
+</odoo>

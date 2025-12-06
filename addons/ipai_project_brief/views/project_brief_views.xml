@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ipai_project_brief/views/project_brief_views.xml -->
+<odoo>
+
+    <record id="view_project_brief_tree" model="ir.ui.view">
+        <field name="name">project.brief.tree</field>
+        <field name="model">project.brief</field>
+        <field name="arch" type="xml">
+            <tree string="Project Briefs">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="client_id"/>
+                <field name="brand_name"/>
+                <field name="status"/>
+                <field name="deadline"/>
+                <field name="budget"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_project_brief_form" model="ir.ui.view">
+        <field name="name">project.brief.form</field>
+        <field name="model">project.brief</field>
+        <field name="arch" type="xml">
+            <form string="Project Brief">
+                <header>
+                    <button name="action_mark_in_review" type="object"
+                            string="Send for Review"
+                            states="draft,on_hold"
+                            class="btn-primary"/>
+                    <button name="action_approve" type="object"
+                            string="Approve"
+                            states="in_review,on_hold"
+                            class="btn-primary"/>
+                    <button name="action_hold" type="object"
+                            string="On Hold"
+                            states="draft,in_review,approved"
+                            class="btn-secondary"/>
+                    <button name="action_cancel" type="object"
+                            string="Cancel"
+                            states="draft,in_review,on_hold"
+                            class="btn-secondary"/>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="draft,in_review,approved,on_hold,cancelled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="project_id"/>
+                            <field name="client_id"/>
+                            <field name="brand_name"/>
+                        </group>
+                        <group>
+                            <field name="budget"/>
+                            <field name="deadline"/>
+                            <field name="company_id"/>
+                            <field name="is_locked" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Objective">
+                            <group>
+                                <field name="objective"/>
+                                <field name="key_message"/>
+                            </group>
+                        </page>
+                        <page string="Audience &amp; Deliverables">
+                            <group>
+                                <field name="target_audience"/>
+                                <field name="deliverables"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_project_brief_search" model="ir.ui.view">
+        <field name="name">project.brief.search</field>
+        <field name="model">project.brief</field>
+        <field name="arch" type="xml">
+            <search string="Project Briefs">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="client_id"/>
+                <field name="brand_name"/>
+                <filter string="Draft" name="draft" domain="[('status','=','draft')]"/>
+                <filter string="In Review" name="in_review" domain="[('status','=','in_review')]"/>
+                <filter string="Approved" name="approved" domain="[('status','=','approved')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Client" name="group_client" context="{'group_by': 'client_id'}"/>
+                    <filter string="Project" name="group_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_project_brief" model="ir.actions.act_window">
+        <field name="name">Project Briefs</field>
+        <field name="res_model">project.brief</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p>
+                Use project briefs to capture structured inputs for creative and
+                strategic work before production begins.
+            </p>
+        </field>
+    </record>
+
+</odoo>
